@@ -16,19 +16,18 @@ const wsLink = new WebSocketLink({
     lazy: true,
     reconnect: true,
     connectionParams: async () => {
-      const token = '';
+      // const token = '';
       return {
         headers: {
-          Authorization: `Bearer ${token}`,
+          // Authorization: `Bearer ${token}`,
         },
       };
     },
   },
 });
 
-let userResp;
 const withToken = setContext(async request => {
-  return { headers: {} }
+  return { }
   /* if (!userResp) {
     const val = '';
     let u = JSON.parse(val);
