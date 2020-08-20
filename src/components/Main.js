@@ -1,6 +1,6 @@
 import React from "react"
 import { Switch, Route, Link } from "react-router-dom"
-import '../App.sass';
+import '../App.css';
 import ActiveReservation from './ActiveReservation'
 import About from './About'
 import Page404 from './Page404'
@@ -43,12 +43,10 @@ export default function Main(props) {
           </li>
         </ul>
       </div>
-      <div>
-        {!isLoggedIn && <div>
-          <button className="button is-warning is-rounded" onClick={() => { liff.login() }}>Log in</button>
-        </div>}
-        {profile.userId && <div> Hi, {profile.displayName}</div>}
-      </div>
+      {!isLoggedIn && <div>
+        <button className="button is-warning is-rounded" onClick={() => { liff.login() }}>Log in</button>
+      </div>}
+      {/* {profile.userId && <div> Hi, {profile.displayName}</div>} */}
       <Switch>
         <Route exact path="/about" component={() => <About liff={liff} />} />
         <Route exact path="/" component={() => <ActiveReservation userID={profile.userId} liff={liff} />} />

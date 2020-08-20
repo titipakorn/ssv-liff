@@ -152,7 +152,7 @@ function ReservationCard({ items, liff }) {
       <footer className="card-footer">
         <p className="card-footer-item">
           {(step < 2 && isInLineApp) && (
-            <button onClick={() => {
+            <button className="button is-light" onClick={() => {
               liff.sendMessages([{
                 'type': 'text',
                 'text': "Cancel"
