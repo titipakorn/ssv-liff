@@ -23,6 +23,8 @@ export const relativeTime = dayStr => {
 };
 export const displayDatetime = dayStr =>
   dayjs(dayStr).format('MMMM DD, YYYY HH:mm');
+  export const displayDate = dayStr =>
+    dayjs(dayStr).format('MMMM DD, YYYY');
 export const minDuration = (d1, d2) => {
   const diff = (dayjs(d2) - dayjs(d1)) / 1000;
   return Math.floor(diff / 60); // min

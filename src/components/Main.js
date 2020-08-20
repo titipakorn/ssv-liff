@@ -1,6 +1,6 @@
 import React from "react"
 import { Switch, Route, Link } from "react-router-dom"
-import '../App.css';
+import '../App.sass';
 import ActiveReservation from './ActiveReservation'
 import About from './About'
 import Page404 from './Page404'
