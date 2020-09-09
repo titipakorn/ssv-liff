@@ -32,19 +32,26 @@ export default function Map({ traces, origin, destination }) {
 
     if (traces && traces.length > 0) {
       const t = traces[0]
+      const crd = t.point.coordinates
+      const { latitude, longitude } = driver
+      // never set the same viewport/driver's location repeatedly
+      if (crd[1] === latitude && crd[0] === longitude) {
+        return
+      }
+
       setViewport({
         ...viewport,
-        latitude: t.point.coordinates[1],
-        longitude: t.point.coordinates[0],
+        latitude: crd[1],
+        longitude: crd[0],
       })
 
       setDriver({
-        latitude: t.point.coordinates[1],
-        longitude: t.point.coordinates[0],
+        latitude: crd[1],
+        longitude: crd[0],
       })
     }
 
-  }, [traces, viewport])
+  }, [driver, traces, viewport])
 
   return (
     <MapContainer>

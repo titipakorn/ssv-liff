@@ -24,7 +24,7 @@ export const relativeTime = dayStr => {
 export const agoFormat = dayStr => {
   const now = dayjs();
   const target = dayjs(dayStr);
-  const diff = (target - now) / 1000;
+  const diff = Math.abs((target - now) / 1000);
   if (diff === 0) return 'now'
   if (diff < 100) return `${diff.toFixed(0)} s ago`
   const min = diff / 60;
