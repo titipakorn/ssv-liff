@@ -7,7 +7,7 @@ import Page404 from './Page404'
 
 export default function Main(props) {
   const { liff } = props
-  console.log(props)
+  // console.log(props)
   const [profile, setProfile] = React.useState({})
   const isLoggedIn = liff.isLoggedIn()
 

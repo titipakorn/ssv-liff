@@ -21,10 +21,19 @@ export const relativeTime = dayStr => {
   const minText = leftoverMin > 9 ? leftoverMin : `0${leftoverMin.toFixed(0)}`;
   return `${hr.toFixed(0)}:${minText} hr`;
 };
+export const agoFormat = dayStr => {
+  const now = dayjs();
+  const target = dayjs(dayStr);
+  const diff = (target - now) / 1000;
+  if (diff === 0) return 'now'
+  if (diff < 100) return `${diff.toFixed(0)} s ago`
+  const min = diff / 60;
+  return `${min.toFixed(0)} min ago`;
+}
 export const displayDatetime = dayStr =>
   dayjs(dayStr).format('MMMM DD, YYYY HH:mm');
-  export const displayDate = dayStr =>
-    dayjs(dayStr).format('MMMM DD, YYYY');
+export const displayDate = dayStr =>
+  dayjs(dayStr).format('MMMM DD, YYYY');
 export const minDuration = (d1, d2) => {
   const diff = (dayjs(d2) - dayjs(d1)) / 1000;
   return Math.floor(diff / 60); // min

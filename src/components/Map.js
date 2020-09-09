@@ -14,7 +14,7 @@ const MapContainer = styled.div`
   height: 100%;
 `
 
-export default function Map({ traces }) {
+export default function Map({ traces, origin, destination }) {
   const [driver, setDriver] = useState({
     latitude: 13.745993, longitude: 100.578080
   })
@@ -30,7 +30,7 @@ export default function Map({ traces }) {
 
   React.useEffect(() => {
 
-    if (traces.length > 0) {
+    if (traces && traces.length > 0) {
       const t = traces[0]
       setViewport({
         ...viewport,
@@ -61,16 +61,8 @@ export default function Map({ traces }) {
         }}
       >
         {driver.latitude !== 0 && <Marker lat={driver.latitude} lon={driver.longitude} />}
-        {/* <SVGOverlay redraw={this._redrawSVGOverlay} />
-        <CanvasOverlay redraw={this._redrawCanvasOverlay} />
-        {coords && (
-          <MyLocationMarker
-            lat={myLocation.latitude}
-            lon={myLocation.longitude}
-          />
-        )} */}
-
-        {/* {this._renderPopup()} */}
+        {origin && <Marker icon="start" color={'#4fce06'} lat={origin.coordinates[1]} lon={origin.coordinates[0]} />}
+        {destination && <Marker icon="end" color={'#dd4444'} lat={destination.coordinates[1]} lon={destination.coordinates[0]} />}
       </ReactMapGL>
     </MapContainer>
   )

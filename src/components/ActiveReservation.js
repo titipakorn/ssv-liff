@@ -2,17 +2,20 @@ import React from 'react'
 import gql from 'graphql-tag';
 import styled from 'styled-components'
 import { useSubscription } from '@apollo/react-hooks';
-import { displayTime, displayDate } from '../lib/day'
+import { displayTime, displayDatetime, agoFormat } from '../lib/day'
 import './ActiveReservation.css'
+import Map from './Map'
 
 const ACTIVE_TRIP = gql`
     subscription ACTIVE_TRIP($userID: String!) {
     trip (
       limit: 1
       where: {
-        user: {
-          line_user_id: {_eq: $userID}
-        }
+        _and: [
+          {user: {line_user_id: {_eq: $userID}}},
+          {dropped_off_at: {_is_null: true}},
+          {cancelled_at: {_is_null: true}}
+        ]
       }
       order_by: {
         reserved_at: desc
@@ -20,10 +23,13 @@ const ACTIVE_TRIP = gql`
     ) {
       from
       to
+      place_from
+      place_to
       reserved_at
       accepted_at
       picked_up_at
       dropped_off_at
+      cancelled_at
       traces (limit: 1, order_by: {created_at:desc}) {
         point
         speed
@@ -73,11 +79,21 @@ div.When {
     font-size: 0.9rem;
   }
 }
-
 `
 
+const MapContainer = styled.div`
+width: 100%;
+height: 200px;
+`
+
+const Small = styled.div`
+  font-size: 0.85rem;
+  color: #aaa;
+  font-style: italic;
+`
 
 function ReservationCard({ items, liff }) {
+  const [mapVisible, toggleMap] = React.useState(false)
   if (items.length === 0) {
     return <div>There is no reservation yet.</div>
   }
@@ -85,7 +101,11 @@ function ReservationCard({ items, liff }) {
   const { from, to, reserved_at,
     accepted_at,
     picked_up_at,
-    dropped_off_at } = items[0]
+    dropped_off_at,
+    traces,
+    place_to,
+    place_from,
+  } = items[0]
 
   let step = 1
   if (dropped_off_at !== null) {
@@ -97,47 +117,64 @@ function ReservationCard({ items, liff }) {
   }
 
   const isInLineApp = liff.isInClient()
+
   return (
     <Card className="card">
       <div className="card-content">
-        <ul class="steps is-small">
-          <li class="step-item is-completed is-success">
-            <div class="step-marker">
-              <span class="icon">
-                <i class="fa fa-check"></i>
+        <ul className="steps is-small">
+          <li className="step-item is-completed is-success">
+            <div className="step-marker">
+              <span className="icon">
+                <i className="fa fa-check"></i>
               </span>
             </div>
-            <div class="step-details is-completed">
-              <p class="step-title">Step 1</p>
+            <div className="step-details is-completed">
+              <p className="step-title">Step 1</p>
               <p>Reservation</p>
               <p>{displayTime(reserved_at)}</p>
             </div>
           </li>
-          <li class={`step-item is-success ${step > 1 ? 'is-completed' : ''}`}>
-            <div class="step-marker"></div>
-            <div class="step-details">
-              <p class="step-title">Step 2</p>
+          <li className={`step-item is-success ${step > 1 ? 'is-completed' : ''}`}>
+            <div className="step-marker"></div>
+            <div className="step-details">
+              <p className="step-title">Step 2</p>
               <p>Reservation accepted</p>
               {accepted_at && <p>{displayTime(accepted_at)}</p>}
             </div>
           </li>
-          <li class={`step-item is-success ${step > 2 ? 'is-completed' : ''}`}>
-            <div class="step-marker"></div>
-            <div class="step-details">
-              <p class="step-title">Step 3</p>
+          <li className={`step-item is-success ${step > 2 ? 'is-completed' : ''}`}>
+            <div className="step-marker"></div>
+            <div className="step-details">
+              <p className="step-title">Step 3</p>
               <p>Picked up</p>
               {picked_up_at && <p>{displayTime(picked_up_at)}</p>}
             </div>
           </li>
-          <li class={`step-item is-success ${step > 3 ? 'is-completed' : ''}`}>
-            <div class="step-marker"></div>
-            <div class="step-details">
-              <p class="step-title">Step 4</p>
+          <li className={`step-item is-success ${step > 3 ? 'is-completed' : ''}`}>
+            <div className="step-marker"></div>
+            <div className="step-details">
+              <p className="step-title">Step 4</p>
               <p>Dropped off</p>
               {dropped_off_at && <p>{displayTime(dropped_off_at)}</p>}
             </div>
           </li>
+          {items[0].cancelled_at}
         </ul>
+
+        <div className="has-text-right">
+          <button className="button is-small is-light" onClick={() => {
+            toggleMap(!mapVisible)
+          }} >Map</button>
+        </div>
+
+        {mapVisible && (
+          <>
+            {traces.length > 0 && <Small>updated: {agoFormat(traces[0].timestamp)}</Small>}
+            <MapContainer>
+              <Map origin={place_from} destination={place_to} traces={traces} />
+            </MapContainer>
+          </>
+        )}
 
         <div className="From">
           {from}
@@ -146,12 +183,13 @@ function ReservationCard({ items, liff }) {
           {to}
         </div>
         <div className="When">
-          {displayDate(reserved_at)}
+          {displayDatetime(reserved_at)}
         </div>
       </div>
-      <footer className="card-footer">
+
+      {step < 2 && (<footer className="card-footer">
         <p className="card-footer-item">
-          {(step < 2 && isInLineApp) && (
+          {isInLineApp && (
             <button className="button is-light" onClick={() => {
               liff.sendMessages([{
                 'type': 'text',
@@ -163,11 +201,11 @@ function ReservationCard({ items, liff }) {
               });
             }} >Cancel</button>
           )}
-          {(step < 2 && !isInLineApp) && (
+          {!isInLineApp && (
             <span>Type "cancel" in Line to cancel</span>
           )}
         </p>
-      </footer>
+      </footer>)}
     </Card>
   )
 }

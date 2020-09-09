@@ -10,6 +10,7 @@ export default function MyMarker(props) {
     lon,
     color,
     draggable = false,
+    icon,
     onDragEnd
   } = props
   const ccolor = color ? color : '#28adff'
@@ -25,7 +26,7 @@ export default function MyMarker(props) {
       draggable={draggable}
       onDragEnd={onDragEnd}
     >
-      <Pin size={size} color={ccolor}>
+      <Pin icon={icon} size={size} color={ccolor}>
         You are here
       </Pin>
     </Marker>
