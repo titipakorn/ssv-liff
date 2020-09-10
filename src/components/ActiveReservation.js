@@ -193,7 +193,7 @@ function ReservationCard({ items, liff }) {
             <button className="button is-light" onClick={() => {
               liff.sendMessages([{
                 'type': 'text',
-                'text': "Cancel"
+                'text': "[LIFF] Cancel"
               }]).then(function () {
                 window.alert('Message sent');
               }).catch(function (error) {

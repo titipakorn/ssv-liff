@@ -6,6 +6,7 @@ import dayjs from 'dayjs'
 import { displayDatetime } from '../lib/day'
 import './ActiveReservation.css'
 import star from './star.svg';
+import Feedback from './Feedback';
 
 const TRIP_HISTORY = gql`
     subscription TRIP_HISTORY($userID: String!) {
@@ -133,8 +134,9 @@ function Stars({ num }) {
   </Center>
 }
 
-function TripItem({ item }) {
-  const { from, to, reserved_at,
+function TripItem({ item, liff }) {
+  const [editMode, setEditMode] = React.useState(false)
+  const { id, from, to, reserved_at,
     picked_up_at,
     dropped_off_at,
     user_feedback,
@@ -142,6 +144,7 @@ function TripItem({ item }) {
   } = item
   let diff = (dayjs(dropped_off_at) - dayjs(picked_up_at)) / 1000 / 60
   if (isNaN(diff)) diff = 0
+  const feedbackMissing = !(user_feedback || cancelled_at)
   return (
     <Card className="card">
       <div className={`card-content ${cancelled_at && 'cancelled'}`}>
@@ -155,6 +158,8 @@ function TripItem({ item }) {
           {displayDatetime(reserved_at)} ({diff.toFixed(0)} min trip)
         </div>
         {user_feedback && <Stars num={user_feedback} />}
+        {feedbackMissing && <Center><button className="button is-small is-info" onClick={() => { setEditMode(!editMode) }}>{!editMode ? "Leave feedback" : "Cancel"}</button></Center>}
+        {editMode && <Feedback liff={liff} closeFeedback={() => setEditMode(false)} ID={id} />}
       </div>
     </Card>
   )
