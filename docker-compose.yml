@@ -2,7 +2,6 @@ version: "3"
 
 services:
   react:
-    container_name: react
     build:
       # the context (working directory) is the current directory
       # change this to the directory containing the dockerfile if in a different place

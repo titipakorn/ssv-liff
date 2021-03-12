@@ -9,7 +9,6 @@ RUN npm i
 #build the project for production
 # set up production environment
 RUN npm run build
-# RUN npm run postbuild
 
 # the base image for this is an alpine based nginx image
 FROM nginx:alpine

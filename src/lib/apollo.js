@@ -7,11 +7,11 @@ import { onError } from 'apollo-link-error';
 import { split } from 'apollo-link';
 import { getMainDefinition } from 'apollo-utilities';
 
-const httpLink = new HttpLink({ uri: 'https://gql.10z.dev/v1/graphql' });
+const httpLink = new HttpLink({ uri: process.env.REACT_APP_GRAPHQL_URI, });
 
 // Create a WebSocket link:
 const wsLink = new WebSocketLink({
-  uri: 'wss://gql.10z.dev/v1/graphql',
+  uri: process.env.REACT_APP_WEBSOCKET_LINK,
   options: {
     lazy: true,
     reconnect: true,
