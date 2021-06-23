@@ -6,91 +6,24 @@ import { displayTime, displayDatetime, agoFormat } from '../lib/day'
 import './ActiveReservation.css'
 import Map from './Map'
 
-const ACTIVE_TRIP = gql`
-    subscription ACTIVE_TRIP($userID: String!) {
-    trip (
-      limit: 1
-      where: {
-        _and: [
-          {user: {line_user_id: {_eq: $userID}}},
-          {dropped_off_at: {_is_null: true}},
-          {cancelled_at: {_is_null: true}}
-        ]
-      }
-      order_by: {
-        reserved_at: desc
-      }
-    ) {
-      from
-      to
-      place_from
-      place_to
-      reserved_at
-      accepted_at
-      picked_up_at
-      dropped_off_at
-      cancelled_at
-      traces (limit: 1, order_by: {created_at:desc}) {
-        point
-        speed
-        heading
-        timestamp
-      }
-    }
-  }
-`;
 
+export default function ActiveReservation({ userID, liff }) {
 
-const Card = styled.div`
-text-align: left;
+  const { loading, error, data } = useSubscription(ACTIVE_TRIP, {
+    shouldResubscribe: true,
+    variables: { userID: userID },
+    skip: !userID,
+  });
 
-div.From {
-  width: 100%;
-  font-size: 2rem;
+  return (
+    <>
+      {loading && <div>Loading...</div>}
+      {error && <div>error... {error.message}</div>}
+      {data && <div><ReservationCard items={data.trip} liff={liff} /></div>}
+    </>
+  )
 
-  ::before {
-    content: "Pickup at";
-    margin-right: 1rem;
-    color: #aaa;
-    font-size: 0.9rem;
-  }
 }
-
-div.To {
-  font-size: 1.3rem;
-  color: #666;
-
-  ::before {
-    content: "Destination";
-    margin-right: 1rem;
-    color: #aaa;
-    font-size: 0.9rem;
-  }
-}
-
-div.When {
-  font-size: 1.3rem;
-  color: #666;
-
-  ::before {
-    content: "On";
-    margin-right: 1rem;
-    color: #aaa;
-    font-size: 0.9rem;
-  }
-}
-`
-
-const MapContainer = styled.div`
-width: 100%;
-height: 200px;
-`
-
-const Small = styled.div`
-  font-size: 0.85rem;
-  color: #aaa;
-  font-style: italic;
-`
 
 function ReservationCard({ items, liff }) {
   const [mapVisible, toggleMap] = React.useState(false)
@@ -210,21 +143,88 @@ function ReservationCard({ items, liff }) {
   )
 }
 
-export default function ActiveReservation({ userID, liff }) {
+const ACTIVE_TRIP = gql`
+    subscription ACTIVE_TRIP($userID: String!) {
+    trip (
+      limit: 1
+      where: {
+        _and: [
+          {user: {line_user_id: {_eq: $userID}}},
+          {dropped_off_at: {_is_null: true}},
+          {cancelled_at: {_is_null: true}}
+        ]
+      }
+      order_by: {
+        reserved_at: desc
+      }
+    ) {
+      from
+      to
+      place_from
+      place_to
+      reserved_at
+      accepted_at
+      picked_up_at
+      dropped_off_at
+      cancelled_at
+      traces (limit: 1, order_by: {created_at:desc}) {
+        point
+        speed
+        heading
+        timestamp
+      }
+    }
+  }
+`;
 
-  const { loading, error, data } = useSubscription(ACTIVE_TRIP, {
-    shouldResubscribe: true,
-    variables: { userID: userID },
-    skip: !userID,
-  });
 
-  return (
-    <>
-      {loading && <div>Loading...</div>}
-      {error && <div>error... {error.message}</div>}
-      {data && <div><ReservationCard items={data.trip} liff={liff} /></div>}
-    </>
-  )
+const Card = styled.div`
+text-align: left;
 
+div.From {
+  width: 100%;
+  font-size: 2rem;
 
+  ::before {
+    content: "Pickup at";
+    margin-right: 1rem;
+    color: #aaa;
+    font-size: 0.9rem;
+  }
 }
+
+div.To {
+  font-size: 1.3rem;
+  color: #666;
+
+  ::before {
+    content: "Destination";
+    margin-right: 1rem;
+    color: #aaa;
+    font-size: 0.9rem;
+  }
+}
+
+div.When {
+  font-size: 1.3rem;
+  color: #666;
+
+  ::before {
+    content: "On";
+    margin-right: 1rem;
+    color: #aaa;
+    font-size: 0.9rem;
+  }
+}
+`
+
+const MapContainer = styled.div`
+width: 100%;
+height: 200px;
+`
+
+const Small = styled.div`
+  font-size: 0.85rem;
+  color: #aaa;
+  font-style: italic;
+`

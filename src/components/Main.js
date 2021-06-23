@@ -4,6 +4,7 @@ import {
 } from "react-router-dom"
 import '../App.css';
 import ActiveReservation from './ActiveReservation'
+import Registration from './Registration'
 import Help from './Help'
 import History from './History'
 import Page404 from './Page404'
@@ -29,12 +30,19 @@ export default function Main(props) {
 
   }, [liff, isLoggedIn])
 
+
+  console.log(profile)
   return (
     <div className="App">
       <div className="tabs is-fullwidth">
         <ul>
           <li className={`${pathname === "/" && "is-active"}`}>
             <Link to="/">
+              <span>Registration</span>
+            </Link>
+          </li>
+          <li className={`${pathname === "/trip" && "is-active"}`}>
+            <Link to="/trip">
               <span>Trip</span>
             </Link>
           </li>
@@ -57,7 +65,8 @@ export default function Main(props) {
       <Switch>
         <Route exact path="/help" component={() => <Help liff={liff} />} />
         <Route exact path="/history" component={() => <History userID={profile.userId} liff={liff} />} />
-        <Route exact path="/" component={() => <ActiveReservation userID={profile.userId} liff={liff} />} />
+        <Route exact path="/trip" component={() => <ActiveReservation userID={profile.userId} liff={liff} />} />
+        <Route exact path="/" component={() => <Registration userID={profile.userId} liff={liff} displayName={profile.displayName} profileURL={profile.pictureUrl} />} />
         <Route path="*" component={Page404} />
       </Switch>
 
