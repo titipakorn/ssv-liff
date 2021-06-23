@@ -1,7 +1,7 @@
-import { useMutation, useQuery } from "@apollo/react-hooks"
-import gql from "graphql-tag"
-import React from "react"
-import { useForm } from "react-hook-form"
+import { useMutation, useQuery } from "@apollo/react-hooks";
+import gql from "graphql-tag";
+import React from "react";
+import { useForm } from "react-hook-form";
 
 export default function Registration({
   userID,
@@ -14,10 +14,12 @@ export default function Registration({
       userID,
     },
     skip: !userID,
-  })
+  });
 
-  const registered = data && data.items && data.items.length > 0
-
+  const registered = data && data.items && data.items.length > 0;
+  if (!userID) {
+    return <></>;
+  }
   return (
     <div>
       <h1 className="title is-2">Registration</h1>
@@ -35,7 +37,7 @@ export default function Registration({
       />
       <hr />
     </div>
-  )
+  );
 }
 
 function RegisterForm({ userID, profileURL, displayName }) {
@@ -44,23 +46,23 @@ function RegisterForm({ userID, profileURL, displayName }) {
     handleSubmit,
     watch,
     formState: { errors },
-  } = useForm()
+  } = useForm();
   const [saveThis, { loading }] = useMutation(USER_CREATE, {
     refetchQueries: {
       query: USER_QUERY,
       variables: { userID },
     },
-  })
+  });
   const onSubmit = async (data) => {
     let body = {
       ...data,
       profileURL,
       userID,
-    }
-    console.log(body)
-    const res = await saveThis({ variables: body })
-    console.log("mutate result: ", res)
-  }
+    };
+    console.log(body);
+    const res = await saveThis({ variables: body });
+    console.log("mutate result: ", res);
+  };
   return (
     /* "handleSubmit" will validate your inputs before invoking "onSubmit" */
     <form onSubmit={handleSubmit(onSubmit)} className="content">
@@ -105,7 +107,7 @@ function RegisterForm({ userID, profileURL, displayName }) {
         </div>
       </div>
     </form>
-  )
+  );
 }
 
 const USER_QUERY = gql`
@@ -119,7 +121,7 @@ const USER_QUERY = gql`
       profile_url
     }
   }
-`
+`;
 
 const USER_CREATE = gql`
   mutation USER_CREATE(
@@ -153,4 +155,4 @@ const USER_CREATE = gql`
       profile_url
     }
   }
-`
+`;
