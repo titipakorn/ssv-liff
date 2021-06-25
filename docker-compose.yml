@@ -3,16 +3,15 @@ version: "3"
 services:
   react:
     image: dk-reg.10ninox.com/ssv/liff:latest
-    # build:
-    #   # the context (working directory) is the current directory
-    #   # change this to the directory containing the dockerfile if in a different place
-    #   context: .
-    #   dockerfile: # the dockerfile to be run
-    #     Dockerfile
     expose:
       - 80
     networks:
       - proxy_default
+    environment:
+      REACT_APP_WEBSOCKET_LINK: ${REACT_APP_WEBSOCKET_LINK}
+      REACT_APP_GRAPHQL_URI: ${REACT_APP_GRAPHQL_URI}
+      REACT_APP_LIFF_ID: ${REACT_APP_LIFF_ID}
+      REACT_APP_MAPBOX_TOKEN: ${REACT_APP_MAPBOX_TOKEN}
 
 networks:
   proxy_default:
