@@ -2,6 +2,7 @@ import { useMutation, useQuery } from "@apollo/react-hooks";
 import gql from "graphql-tag";
 import React from "react";
 import { useForm } from "react-hook-form";
+import lineQRCode from "../355mebkp.png";
 
 export default function Registration({
   userID,
@@ -25,8 +26,13 @@ export default function Registration({
       <h1 className="title is-2">Registration</h1>
       {registered && (
         <div>
-          Already registered, thank you. However, you can update your
-          information if needed.
+          <p>
+            Already registered, thank you. However, you can update your
+            information below if needed.
+          </p>
+          <img src={lineQRCode} className="image" />
+          <h3 className="title is-4">@355mebkp</h3>
+          <p>Please add this Line Account to start the SSV service.</p>
         </div>
       )}
       <hr />
@@ -73,7 +79,6 @@ function RegisterForm({ userID, profileURL, displayName }) {
           <input
             className="input"
             type="text"
-            defaultValue={displayName}
             {...register("lineID", { required: true })}
           />
         </div>
