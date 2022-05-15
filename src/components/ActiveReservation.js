@@ -31,7 +31,7 @@ function ReservationCard({ items, liff }) {
     return <div>There is no reservation yet.</div>
   }
 
-  const { from, to, reserved_at,
+  const { id,from, to, reserved_at,
     accepted_at,
     picked_up_at,
     dropped_off_at,
@@ -108,7 +108,9 @@ function ReservationCard({ items, liff }) {
             </MapContainer>
           </>
         )}
-
+        <div className="JobID">
+          {id}
+        </div>
         <div className="From">
           {from}
         </div>
@@ -158,6 +160,7 @@ const ACTIVE_TRIP = gql`
         reserved_at: desc
       }
     ) {
+      id
       from
       to
       place_from
@@ -181,9 +184,21 @@ const ACTIVE_TRIP = gql`
 const Card = styled.div`
 text-align: left;
 
+div.JobID {
+  width: 100%;
+  font-size: 1.3rem;
+
+  ::before {
+    content: "Job ID";
+    margin-right: 1rem;
+    color: #aaa;
+    font-size: 0.9rem;
+  }
+}
+
 div.From {
   width: 100%;
-  font-size: 2rem;
+  font-size: 1.8rem;
 
   ::before {
     content: "Pickup at";

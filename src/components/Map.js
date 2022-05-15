@@ -1,20 +1,57 @@
 import React, { useState } from "react"
-import ReactMapGL, {
-  // LinearInterpolator,
-  // FlyToInterpolator,
-  // SVGOverlay,
-  // CanvasOverlay,
-  // Popup
-} from "react-map-gl"
+import 'mapbox-gl/dist/mapbox-gl.css';
+// import ReactMapGL, {
+//   // LinearInterpolator,
+//   // FlyToInterpolator,
+//   // SVGOverlay,
+//   // CanvasOverlay,
+//   // Popup
+// } from "react-map-gl"
+import ReactMapGL, { WebMercatorViewport } from 'react-map-gl'
 import styled from "styled-components"
 import Marker from './MapComponents/Marker'
+
+// added the following 6 lines.
+import mapboxgl from 'mapbox-gl';
+
+// The following is required to stop "npm build" from transpiling mapbox code.
+// notice the exclamation point in the import.
+// @ts-ignore
+// eslint-disable-next-line import/no-webpack-loader-syntax, import/no-unresolved
+mapboxgl.workerClass = require('worker-loader!mapbox-gl/dist/mapbox-gl-csp-worker').default;
 
 const MapContainer = styled.div`
   width: 100%;
   height: 100%;
 `
 
+const applyToArray = (func, array) => func.apply(Math, array)
+
+const getBoundsForPoints = (points) => {
+  // Calculate corner values of bounds
+  if(points.length>1){
+  const pointsLong = points.map(point => point.point.coordinates[0])
+  const pointsLat = points.map(point => point.point.coordinates[1])
+  const cornersLongLat = [
+    [applyToArray(Math.min, pointsLong), applyToArray(Math.min, pointsLat)],
+    [applyToArray(Math.max, pointsLong), applyToArray(Math.max, pointsLat)]
+  ]
+  // Use WebMercatorViewport to get center longitude/latitude and zoom
+  const viewport = new WebMercatorViewport({ width: 400, height: 400 })
+    .fitBounds(cornersLongLat, { padding: 165 }) // Can also use option: offset: [0, -100]
+  const { longitude, latitude, zoom } = viewport
+  console.log(zoom,cornersLongLat,points);
+  return { longitude, latitude, zoom }
+}else{
+     return { latitude: 13.745993,
+    longitude: 100.578080,
+    zoom: 14}
+}
+
+}
+
 export default function Map({ traces, origin, destination }) {
+
   const [driver, setDriver] = useState({
     latitude: 13.745993, longitude: 100.578080
   })
@@ -31,6 +68,13 @@ export default function Map({ traces, origin, destination }) {
   React.useEffect(() => {
 
     if (traces && traces.length > 0) {
+      const points = [...traces];
+      if (origin&&destination) {
+        points.push({point:{coordinates:origin.coordinates}});
+        points.push({point:{coordinates:destination.coordinates}});
+      }
+      const bounds = getBoundsForPoints(points)
+      console.log('BOUNDS',bounds)
       const t = traces[0]
       const crd = t.point.coordinates
       const { latitude, longitude } = driver
@@ -41,6 +85,7 @@ export default function Map({ traces, origin, destination }) {
 
       setViewport({
         ...viewport,
+        ...bounds,
         latitude: crd[1],
         longitude: crd[0],
       })
