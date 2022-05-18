@@ -1,14 +1,14 @@
-import React from 'react'
+import React from 'react';
 import gql from 'graphql-tag';
-import styled from 'styled-components'
+import styled from 'styled-components';
 import { useSubscription } from '@apollo/react-hooks';
-import { displayTime, displayDatetime, agoFormat } from '../lib/day'
-import './ActiveReservation.css'
-import Map from './Map'
-
+import { displayTime, displayDatetime } from '../lib/day';
+import './ActiveReservation.css';
+import Map from './Map';
+const faye = require('faye');
+var client = new faye.Client('https://ssv-one.10z.dev/faye/faye');
 
 export default function ActiveReservation({ userID, liff }) {
-
   const { loading, error, data } = useSubscription(ACTIVE_TRIP, {
     shouldResubscribe: true,
     variables: { userID: userID },
@@ -19,37 +19,58 @@ export default function ActiveReservation({ userID, liff }) {
     <>
       {loading && <div>Loading...</div>}
       {error && <div>error... {error.message}</div>}
-      {data && <div><ReservationCard items={data.trip} liff={liff} /></div>}
+      {data && (
+        <div>
+          <ReservationCard items={data.trip} liff={liff} />
+        </div>
+      )}
     </>
-  )
-
+  );
 }
 
 function ReservationCard({ items, liff }) {
-  const [mapVisible, toggleMap] = React.useState(false)
+  const [mapVisible, toggleMap] = React.useState(false);
+  const [driverLocation, setDriver] = React.useState({});
+  React.useEffect(() => {
+    client.subscribe(`/driver_locations/${driver.username}`, function (message) {
+      const {
+        coords: { latitude, longitude },
+        timestamp,
+      } = message;
+      setDriver({
+        latitude,
+        longitude,
+        timestamp,
+      });
+    });
+  }, []);
   if (items.length === 0) {
-    return <div>There is no reservation yet.</div>
+    return <div>There is no reservation yet.</div>;
   }
 
-  const { id,from, to, reserved_at,
+  const {
+    id,
+    from,
+    to,
+    reserved_at,
     accepted_at,
     picked_up_at,
     dropped_off_at,
     traces,
     place_to,
     place_from,
-  } = items[0]
+  } = items[0];
 
-  let step = 1
+  let step = 1;
   if (dropped_off_at !== null) {
-    step = 4
+    step = 4;
   } else if (picked_up_at !== null) {
-    step = 3
+    step = 3;
   } else if (accepted_at !== null) {
-    step = 2
+    step = 2;
   }
 
-  const isInLineApp = liff.isInClient()
+  const isInLineApp = liff.isInClient();
 
   return (
     <Card className="card">
@@ -95,70 +116,79 @@ function ReservationCard({ items, liff }) {
         </ul>
 
         <div className="has-text-right">
-          <button className="button is-small is-light" onClick={() => {
-            toggleMap(!mapVisible)
-          }} >Map</button>
+          <button
+            className="button is-small is-light"
+            onClick={() => {
+              toggleMap(!mapVisible);
+            }}
+          >
+            Map
+          </button>
         </div>
 
         {mapVisible && (
           <>
-            {traces.length > 0 && <Small>updated: {agoFormat(traces[0].timestamp)}</Small>}
             <MapContainer>
-              <Map origin={place_from} destination={place_to} traces={traces} />
+              <Map
+                origin={place_from}
+                destination={place_to}
+                traces={traces}
+                coords={driverLocation}
+              />
             </MapContainer>
           </>
         )}
-        <div className="JobID">
-          {id}
-        </div>
-        <div className="From">
-          {from}
-        </div>
-        <div className="To">
-          {to}
-        </div>
-        <div className="When">
-          {displayDatetime(reserved_at)}
-        </div>
+        <div className="JobID">{id}</div>
+        <div className="From">{from}</div>
+        <div className="To">{to}</div>
+        <div className="When">{displayDatetime(reserved_at)}</div>
       </div>
 
-      {step < 2 && (<footer className="card-footer">
-        <p className="card-footer-item">
-          {isInLineApp && (
-            <button className="button is-light" onClick={() => {
-              liff.sendMessages([{
-                'type': 'text',
-                'text': "[LIFF] Cancel"
-              }]).then(function () {
-                window.alert('Message sent');
-              }).catch(function (error) {
-                window.alert('Error sending message: ' + error);
-              });
-            }} >Cancel</button>
-          )}
-          {!isInLineApp && (
-            <span>Type "cancel" in Line to cancel</span>
-          )}
-        </p>
-      </footer>)}
+      {step < 2 && (
+        <footer className="card-footer">
+          <p className="card-footer-item">
+            {isInLineApp && (
+              <button
+                className="button is-light"
+                onClick={() => {
+                  liff
+                    .sendMessages([
+                      {
+                        type: 'text',
+                        text: '[LIFF] Cancel',
+                      },
+                    ])
+                    .then(function () {
+                      window.alert('Message sent');
+                    })
+                    .catch(function (error) {
+                      window.alert('Error sending message: ' + error);
+                    });
+                }}
+              >
+                Cancel
+              </button>
+            )}
+            {!isInLineApp && <span>Type "cancel" in Line to cancel</span>}
+          </p>
+        </footer>
+      )}
     </Card>
-  )
+  );
 }
 
 const ACTIVE_TRIP = gql`
-    subscription ACTIVE_TRIP($userID: String!) {
-    trip (
+  subscription ACTIVE_TRIP($userID: String!) {
+    trip(
       limit: 1
       where: {
         _and: [
-          {user: {line_user_id: {_eq: $userID}}},
-          {dropped_off_at: {_is_null: true}},
-          {cancelled_at: {_is_null: true}}
+          { user: { line_user_id: { _eq: $userID } } }
+          { dropped_off_at: { _is_null: true } }
+          { cancelled_at: { _is_null: true } }
         ]
       }
-      order_by: {
-        reserved_at: desc
-      }
+      order_by: { reserved_at: desc }
     ) {
       id
       from
@@ -170,7 +200,7 @@ const ACTIVE_TRIP = gql`
       picked_up_at
       dropped_off_at
       cancelled_at
-      traces (limit: 1, order_by: {created_at:desc}) {
+      traces(limit: 1, order_by: { created_at: desc }) {
         point
         speed
         heading
@@ -180,66 +210,65 @@ const ACTIVE_TRIP = gql`
   }
 `;
 
-
 const Card = styled.div`
-text-align: left;
+  text-align: left;
 
-div.JobID {
-  width: 100%;
-  font-size: 1.3rem;
+  div.JobID {
+    width: 100%;
+    font-size: 1.3rem;
 
-  ::before {
-    content: "Job ID";
-    margin-right: 1rem;
-    color: #aaa;
-    font-size: 0.9rem;
+    ::before {
+      content: 'Job ID';
+      margin-right: 1rem;
+      color: #aaa;
+      font-size: 0.9rem;
+    }
   }
-}
 
-div.From {
-  width: 100%;
-  font-size: 1.8rem;
+  div.From {
+    width: 100%;
+    font-size: 1.8rem;
 
-  ::before {
-    content: "Pickup at";
-    margin-right: 1rem;
-    color: #aaa;
-    font-size: 0.9rem;
+    ::before {
+      content: 'Pickup at';
+      margin-right: 1rem;
+      color: #aaa;
+      font-size: 0.9rem;
+    }
   }
-}
 
-div.To {
-  font-size: 1.3rem;
-  color: #666;
+  div.To {
+    font-size: 1.3rem;
+    color: #666;
 
-  ::before {
-    content: "Destination";
-    margin-right: 1rem;
-    color: #aaa;
-    font-size: 0.9rem;
+    ::before {
+      content: 'Destination';
+      margin-right: 1rem;
+      color: #aaa;
+      font-size: 0.9rem;
+    }
   }
-}
 
-div.When {
-  font-size: 1.3rem;
-  color: #666;
+  div.When {
+    font-size: 1.3rem;
+    color: #666;
 
-  ::before {
-    content: "On";
-    margin-right: 1rem;
-    color: #aaa;
-    font-size: 0.9rem;
+    ::before {
+      content: 'On';
+      margin-right: 1rem;
+      color: #aaa;
+      font-size: 0.9rem;
+    }
   }
-}
-`
+`;
 
 const MapContainer = styled.div`
-width: 100%;
-height: 200px;
-`
+  width: 100%;
+  height: 200px;
+`;
 
 const Small = styled.div`
   font-size: 0.85rem;
   color: #aaa;
   font-style: italic;
-`
+`;
