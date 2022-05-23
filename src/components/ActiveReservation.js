@@ -19,7 +19,7 @@ export default function ActiveReservation({ userID, liff }) {
     <>
       {loading && <div>Loading...</div>}
       {error && <div>error... {error.message}</div>}
-      {data && (
+      {data && (data.trip ?? []).length>0 && (
         <div>
           <ReservationCard items={data.trip} liff={liff} />
         </div>
@@ -29,6 +29,19 @@ export default function ActiveReservation({ userID, liff }) {
 }
 
 function ReservationCard({ items, liff }) {
+  const {
+    id,
+    from,
+    to,
+    reserved_at,
+    accepted_at,
+    picked_up_at,
+    dropped_off_at,
+    traces,
+    place_to,
+    place_from,
+    driver
+  } = items[0];
   const [mapVisible, toggleMap] = React.useState(false);
   const [driverLocation, setDriver] = React.useState({});
   React.useEffect(() => {
@@ -48,28 +61,18 @@ function ReservationCard({ items, liff }) {
     return <div>There is no reservation yet.</div>;
   }
 
-  const {
-    id,
-    from,
-    to,
-    reserved_at,
-    accepted_at,
-    picked_up_at,
-    dropped_off_at,
-    traces,
-    place_to,
-    place_from,
-  } = items[0];
-
   let step = 1;
+  let status = 'Wait for accept job';
   if (dropped_off_at !== null) {
+    status = 'Done';
     step = 4;
   } else if (picked_up_at !== null) {
+    status = 'On SSV';
     step = 3;
   } else if (accepted_at !== null) {
     step = 2;
+    status = 'Wait for pickup';
   }
-
   const isInLineApp = liff.isInClient();
 
   return (
@@ -142,6 +145,9 @@ function ReservationCard({ items, liff }) {
         <div className="From">{from}</div>
         <div className="To">{to}</div>
         <div className="When">{displayDatetime(reserved_at)}</div>
+        <div className="Status">{`${status} ${
+                                driver?.username ? `by ${driver?.username}` : ''
+                              }`}</div>
       </div>
 
       {step < 2 && (
@@ -200,6 +206,9 @@ const ACTIVE_TRIP = gql`
       picked_up_at
       dropped_off_at
       cancelled_at
+      driver {
+        username
+      }
       traces(limit: 1, order_by: { created_at: desc }) {
         point
         speed
@@ -215,6 +224,7 @@ const Card = styled.div`
 
   div.JobID {
     width: 100%;
+    margin-top: 1rem;
     font-size: 1.3rem;
 
     ::before {
@@ -260,6 +270,18 @@ const Card = styled.div`
       font-size: 0.9rem;
     }
   }
+
+  div.Status {
+    font-size: 1.3rem;
+    color: #666;
+
+    ::before {
+      content: 'Status';
+      margin-right: 1rem;
+      color: #aaa;
+      font-size: 0.9rem;
+    }
+  }
 `;
 
 const MapContainer = styled.div`
@@ -267,8 +289,3 @@ const MapContainer = styled.div`
   height: 200px;
 `;
 
-const Small = styled.div`
-  font-size: 0.85rem;
-  color: #aaa;
-  font-style: italic;
-`;

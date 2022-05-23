@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState,useEffect } from 'react';
 import 'mapbox-gl/dist/mapbox-gl.css';
 // import ReactMapGL, {
 //   // LinearInterpolator,
@@ -51,6 +51,11 @@ const getBoundsForPoints = (points) => {
 };
 
 export default function Map({ coords, traces, origin, destination }) {
+  const [pointData, setPointData] = useState({});
+  useEffect(() => {
+    const animation = window.requestAnimationFrame(() => setPointData(coords));
+    return () => window.cancelAnimationFrame(animation);
+  }, [coords]);
   const [driver, setDriver] = useState({
     latitude: 13.745993,
     longitude: 100.57808,
@@ -80,7 +85,6 @@ export default function Map({ coords, traces, origin, destination }) {
       if (crd[1] === latitude && crd[0] === longitude) {
         return;
       }
-
       setViewport({
         ...viewport,
         ...bounds,
@@ -99,7 +103,7 @@ export default function Map({ coords, traces, origin, destination }) {
     <>
       <Small>
         updated:{' '}
-        {dayjs(coords.timestamp).format('HH:mm:ss') ??
+        {dayjs(pointData.timestamp).format('HH:mm:ss') ??
           dayjs(traces[0]?.timestamp).format('HH:mm:ss') ??
           dayjs().format('HH:mm:ss')}
       </Small>
@@ -107,6 +111,7 @@ export default function Map({ coords, traces, origin, destination }) {
         {/* <MapControl moveToCurrentLoc={this._moveToCurrLocation} /> */}
         <ReactMapGL
           {...viewport}
+          mapStyle="mapbox://styles/mapbox/streets-v9"
           mapboxApiAccessToken={process.env.REACT_APP_MAPBOX_TOKEN}
           onViewportChange={(vp) => setViewport(vp)}
           reuseMaps={true}
@@ -117,8 +122,8 @@ export default function Map({ coords, traces, origin, destination }) {
           }}
         >
           <Marker
-            lat={coords?.latitude ?? driver?.latitude}
-            lon={coords?.longitude ?? driver?.longitude}
+            lat={pointData?.latitude ?? driver?.latitude}
+            lon={pointData?.longitude ?? driver?.longitude}
           />
           {origin && (
             <Marker
@@ -141,3 +146,9 @@ export default function Map({ coords, traces, origin, destination }) {
     </>
   );
 }
+
+const Small = styled.div`
+  font-size: 0.85rem;
+  color: #aaa;
+  font-style: italic;
+`;
