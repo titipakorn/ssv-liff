@@ -8,7 +8,7 @@ import Registration from './Registration'
 import Help from './Help'
 import History from './History'
 import Page404 from './Page404'
-import ReactGA from 'react-ga';
+import ReactGA from 'react-ga4';
 
 export default function Main(props) {
   const { liff } = props
@@ -33,7 +33,7 @@ export default function Main(props) {
 
 
   React.useEffect(() => {
-    ReactGA.pageview(window.location.pathname + window.location.search);
+    ReactGA.send({ hitType: 'pageview', page: window.location.pathname + window.location.search });
   }, []);
 
   // console.log(profile)

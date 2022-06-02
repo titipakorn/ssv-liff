@@ -2,7 +2,7 @@ import React from 'react';
 import { ApolloProvider } from '@apollo/react-hooks';
 import apolloClient from './lib/apollo';
 import Main from './components/Main'
-import ReactGA from 'react-ga';
+import ReactGA from 'react-ga4';
 const TRACKING_ID = 'G-97PTMEPGTE';
 ReactGA.initialize(TRACKING_ID);
 const LIFF = window.liff;
