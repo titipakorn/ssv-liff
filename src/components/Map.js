@@ -43,7 +43,7 @@ const getBoundsForPoints = (points) => {
       { padding: 165 }
     ); // Can also use option: offset: [0, -100]
     const { longitude, latitude, zoom } = viewport;
-    console.log(zoom, cornersLongLat, points);
+    // console.log(zoom, cornersLongLat, points);
     return { longitude, latitude, zoom };
   } else {
     return { latitude: 13.745993, longitude: 100.57808, zoom: 14 };

@@ -8,6 +8,7 @@ import Registration from './Registration'
 import Help from './Help'
 import History from './History'
 import Page404 from './Page404'
+import ReactGA from 'react-ga';
 
 export default function Main(props) {
   const { liff } = props
@@ -31,7 +32,11 @@ export default function Main(props) {
   }, [liff, isLoggedIn])
 
 
-  console.log(profile)
+  React.useEffect(() => {
+    ReactGA.pageview(window.location.pathname + window.location.search);
+  }, []);
+
+  // console.log(profile)
   return (
     <div className="App">
       <div className="tabs is-fullwidth">

@@ -1,12 +1,45 @@
-import React from 'react';
+import React,{useEffect,useState} from 'react';
 import gql from 'graphql-tag';
 import styled from 'styled-components';
 import { useSubscription } from '@apollo/react-hooks';
+import dayjs from 'dayjs';
 import { displayTime, displayDatetime } from '../lib/day';
 import './ActiveReservation.css';
 import Map from './Map';
+import MMap from './MMap';
+import useAnalyticsEventTracker from '../lib/useAnalyticsEventTracker';
 const faye = require('faye');
 var client = new faye.Client('https://ssv-one.10z.dev/faye/faye');
+
+async function getLastestLocation(driver) {
+  const resp = await fetch('https://ssv-one.10z.dev/v1/graphql', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      query: `queryGetLastLocation($driver: String){
+        log_traces(limit: 1,
+        order_by: {
+          timestamp: desc
+        },
+        where: {
+          driver_name: {
+            _eq: $driver
+          }
+        }){
+          point,
+          timestamp
+        }
+      }`,
+      variables: {
+        driver,
+      },
+    }),
+  });
+  const json = await resp.json();
+  return json;
+}
 
 export default function ActiveReservation({ userID, liff }) {
   const { loading, error, data } = useSubscription(ACTIVE_TRIP, {
@@ -19,15 +52,84 @@ export default function ActiveReservation({ userID, liff }) {
     <>
       {loading && <div>Loading...</div>}
       {error && <div>error... {error.message}</div>}
-      {data && (data.trip ?? []).length>0 && (
+      {data && (data.trip ?? []).length>0 ? (
         <div>
           <ReservationCard items={data.trip} liff={liff} />
         </div>
-      )}
+      ) : <div><MonitorMap/></div>}
     </>
   );
 }
 
+
+function MonitorMap({origin, destination}) {
+  const [drivers, setDriver] = useState({});
+  const [locationDrivers, setLocationDriver] = useState({});
+  const [driverState, setDriverState] = useState({});
+  const { data } = useSubscription(ACTIVE_WORKING_SHIFT, {
+    shouldResubscribe: true,
+    variables: { day: dayjs().startOf('day').format('YYYY-MM-DDTHH:mm:ssZ') },
+  });
+  useEffect(() => {
+    client.subscribe(`/driver_locations`, function (message) {
+      const {
+        driver,
+        coords: { latitude, longitude },
+        timestamp,
+      } = message;
+      setDriver({
+        driver,
+        latitude,
+        longitude,
+        timestamp,
+      });
+    });
+  }, []);
+  useEffect(() => {
+    if ('driver' in drivers) {
+      const { driver, latitude, longitude, timestamp } = drivers;
+      setLocationDriver({
+        ...locationDrivers,
+        [driver]: { latitude, longitude, timestamp },
+      });
+    }
+  }, [drivers]);
+
+  useEffect(() => {
+    if (data) {
+      const dState = Object.fromEntries(
+        data.items.map((item) => {
+          return [item?.driver?.username, item?.vehicle?.color];
+        })
+      );
+      async function fetchData() {
+        const ddStates = Object.fromEntries(
+          await Promise.all(
+            Object.keys(dState).map(async (item) => {
+              const locationData = await getLastestLocation(item);
+              const [locationPoint] = locationData?.data?.log_traces ?? [];
+              return [
+                item,
+                {
+                  latitude: locationPoint?.point?.coordinates[1] ?? 0,
+                  longitude: locationPoint?.point?.coordinates[0] ?? 0,
+                  timestamp: locationPoint?.timestamp,
+                },
+              ];
+            })
+          )
+        );
+        setLocationDriver(ddStates);
+      }
+      fetchData();
+      setDriverState(dState);
+    }
+
+  }, [data]);
+  
+  return <MapContainer><MMap coords={locationDrivers} drivers={driverState} origin={origin} destination={destination} /></MapContainer>;
+  
+}
 function ReservationCard({ items, liff }) {
   const {
     id,
@@ -42,21 +144,26 @@ function ReservationCard({ items, liff }) {
     place_from,
     driver
   } = items[0];
+  const gaEventTracker = useAnalyticsEventTracker("ActiveReservation");
   const [mapVisible, toggleMap] = React.useState(false);
   const [driverLocation, setDriver] = React.useState({});
-  React.useEffect(() => {
-    client.subscribe(`/driver_locations/${driver.username}`, function (message) {
-      const {
-        coords: { latitude, longitude },
-        timestamp,
-      } = message;
-      setDriver({
-        latitude,
-        longitude,
-        timestamp,
+
+  useEffect(() => {
+    if(driver){
+      client.subscribe(`/driver_locations/${driver.username}`, function (message) {
+        const {
+          coords: { latitude, longitude },
+          timestamp,
+        } = message;
+        setDriver({
+          latitude,
+          longitude,
+          timestamp,
+        });
       });
-    });
-  }, []);
+  }
+  }, [driver]);
+
   if (items.length === 0) {
     return <div>There is no reservation yet.</div>;
   }
@@ -122,6 +229,7 @@ function ReservationCard({ items, liff }) {
           <button
             className="button is-small is-light"
             onClick={() => {
+              gaEventTracker('Toggle_Map',`${!mapVisible}`);
               toggleMap(!mapVisible);
             }}
           >
@@ -129,7 +237,7 @@ function ReservationCard({ items, liff }) {
           </button>
         </div>
 
-        {mapVisible && (
+        {mapVisible && step>1 ? (
           <>
             <MapContainer>
               <Map
@@ -140,13 +248,14 @@ function ReservationCard({ items, liff }) {
               />
             </MapContainer>
           </>
-        )}
+        ) : (<MonitorMap origin={place_from}
+          destination={place_to}/>)}
         <div className="JobID">{id}</div>
         <div className="From">{from}</div>
         <div className="To">{to}</div>
         <div className="When">{displayDatetime(reserved_at)}</div>
-        <div className="Status">{`${status} ${
-                                driver?.username ? `by ${driver?.username}` : ''
+        <div className="Status">{`${status} ${driver ?
+                                driver?.username ? `by ${driver?.username}` : '' : ''
                               }`}</div>
       </div>
 
@@ -182,6 +291,26 @@ function ReservationCard({ items, liff }) {
     </Card>
   );
 }
+
+const ACTIVE_WORKING_SHIFT = gql`
+  subscription ACTIVE_WORKING_SHIFT($day: timestamptz) {
+    items: working_shift(
+      where: { _and: [{ _or: [{ start: { _gte: $day } }] }, { end: { _is_null: true } }] }
+    ) {
+      id
+      start
+      latest_timestamp
+      vehicle {
+        name
+        license_plate
+        color
+      }
+      driver {
+        username
+      }
+    }
+  }
+`;
 
 const ACTIVE_TRIP = gql`
   subscription ACTIVE_TRIP($userID: String!) {
