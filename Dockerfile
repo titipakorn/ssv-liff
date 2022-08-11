@@ -8,13 +8,18 @@ ENV PATH /app/node_modules/.bin:$PATH
 RUN npm i
 #build the project for production
 # set up production environment
+FROM node:alpine as builder
+WORKDIR /app
+COPY . .
+COPY --from=build /app/node_modules ./node_modules
+
 RUN npm run build
 
 # the base image for this is an alpine based nginx image
-FROM nginx:alpine
+FROM nginx:alpine AS runner
 # copy the build folder from react to the root of nginx (www)
 RUN mkdir /www
-COPY --from=build /app/build /www
+COPY --from=builder /app/build /www
 # --------- only for those using react router ----------
 # if you are using react router
 # you need to overwrite the default nginx configurations

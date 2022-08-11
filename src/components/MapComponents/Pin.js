@@ -23,16 +23,19 @@ function getPathStyle(ico) {
 }
 
 export default function Pin(props) {
-  const { size = 20, color = BLUE, icon = 'car' } = props
+  const { size = 20, color = BLUE, icon = 'car', normal=true } = props
 
   return (
     <svg
       height={size}
       viewBox="0 0 24 24"
-      style={{
+      style={normal ? {
         ...pinStyle,
         fill: color,
         transform: `translate(${-size / 2}px,${-size}px)`
+      } : {
+        ...pinStyle,
+        fill: color
       }}
     >
       <path d={getPathStyle(icon)} />

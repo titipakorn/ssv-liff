@@ -48,6 +48,11 @@ export default function ActiveReservation({ userID, liff }) {
     variables: { userID: userID },
     skip: !userID,
   });
+  const { data: shiftData } = useSubscription(ACTIVE_WORKING_SHIFT, {
+    shouldResubscribe: true,
+    variables: { day: dayjs().startOf('day').format('YYYY-MM-DDTHH:mm:ssZ') },
+  });
+  const { data: activeTrips } = useSubscription(ACTIVE_TRIPS);
 
   return (
     <>
@@ -55,11 +60,25 @@ export default function ActiveReservation({ userID, liff }) {
       {error && <div>error... {error.message}</div>}
       {data && (data.trip ?? []).length > 0 ? (
         <div>
-          <ReservationCard items={data.trip} liff={liff} />
+          <ReservationCard items={data.trip} liff={liff} shiftData={shiftData} activeTrips={activeTrips} />
         </div>
       ) : (
         <div>
-          <MonitorMap />
+           <ul>
+          {shiftData &&
+            shiftData.items.map((item) => (
+              <li style={{display: 'inline-block'}}>
+                <Pin color={item?.vehicle?.color} normal={false} /> <span style={{border: '1px solid black',padding: '1px'}}>{item?.driver?.username}{' '}
+                {activeTrips
+                  ? activeTrips?.trip.filter((v) => v.driver?.username === item?.driver?.username)
+                      .length > 0
+                    ? '(Busy)'
+                    : '(Vacant)'
+                  : '(...)'}</span>
+              </li>
+            ))}
+        </ul>
+          <MonitorMap data={shiftData} />
         </div>
       )}
     </>
@@ -137,7 +156,7 @@ function MonitorMap({ origin, destination, data }) {
     </MapContainer>
   );
 }
-function ReservationCard({ items, liff }) {
+function ReservationCard({ items, liff,activeTrips,shiftData }) {
   const {
     id,
     from,
@@ -154,11 +173,6 @@ function ReservationCard({ items, liff }) {
   const gaEventTracker = useAnalyticsEventTracker('ActiveReservation');
   const [mapVisible, toggleMap] = React.useState(false);
   const [driverLocation, setDriver] = React.useState({});
-  const { data } = useSubscription(ACTIVE_WORKING_SHIFT, {
-    shouldResubscribe: true,
-    variables: { day: dayjs().startOf('day').format('YYYY-MM-DDTHH:mm:ssZ') },
-  });
-  const { data: activeTrips } = useSubscription(ACTIVE_TRIPS);
 
   useEffect(() => {
     if (driver) {
@@ -238,16 +252,16 @@ function ReservationCard({ items, liff }) {
         </ul>
 
         <ul>
-          {data &&
-            data.items.map((item) => (
-              <li>
-                <Pin color={item?.vehicle?.color} /> {item?.driver?.username}{' '}
+          {shiftData &&
+            shiftData.items.map((item) => (
+              <li style={{display: 'inline-block'}}>
+                <Pin color={item?.vehicle?.color} normal={false} /> <span style={{border: '1px solid black',padding: '1px'}}>{item?.driver?.username}{' '}
                 {activeTrips
                   ? activeTrips?.trip.filter((v) => v.driver?.username === item?.driver?.username)
                       .length > 0
                     ? '(Busy)'
                     : '(Vacant)'
-                  : '(...)'}
+                  : '(...)'}</span>
               </li>
             ))}
         </ul>
@@ -276,7 +290,7 @@ function ReservationCard({ items, liff }) {
             </MapContainer>
           </>
         ) : (
-          <MonitorMap origin={place_from} destination={place_to} data={data} />
+          <MonitorMap origin={place_from} destination={place_to} data={shiftData} />
         )}
         <div className="JobID">{id}</div>
         <div className="From">{from}</div>
