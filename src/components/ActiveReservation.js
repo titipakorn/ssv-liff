@@ -1,4 +1,4 @@
-import React,{useEffect,useState} from 'react';
+import React, { useEffect, useState } from 'react';
 import gql from 'graphql-tag';
 import styled from 'styled-components';
 import { useSubscription } from '@apollo/react-hooks';
@@ -7,6 +7,7 @@ import { displayTime, displayDatetime } from '../lib/day';
 import './ActiveReservation.css';
 import Map from './Map';
 import MMap from './MMap';
+import Pin from './MapComponents/Pin';
 import useAnalyticsEventTracker from '../lib/useAnalyticsEventTracker';
 const faye = require('faye');
 var client = new faye.Client('https://ssv-one.10z.dev/faye/faye');
@@ -52,24 +53,23 @@ export default function ActiveReservation({ userID, liff }) {
     <>
       {loading && <div>Loading...</div>}
       {error && <div>error... {error.message}</div>}
-      {data && (data.trip ?? []).length>0 ? (
+      {data && (data.trip ?? []).length > 0 ? (
         <div>
           <ReservationCard items={data.trip} liff={liff} />
         </div>
-      ) : <div><MonitorMap/></div>}
+      ) : (
+        <div>
+          <MonitorMap />
+        </div>
+      )}
     </>
   );
 }
 
-
-function MonitorMap({origin, destination}) {
+function MonitorMap({ origin, destination, data }) {
   const [drivers, setDriver] = useState({});
   const [locationDrivers, setLocationDriver] = useState({});
   const [driverState, setDriverState] = useState({});
-  const { data } = useSubscription(ACTIVE_WORKING_SHIFT, {
-    shouldResubscribe: true,
-    variables: { day: dayjs().startOf('day').format('YYYY-MM-DDTHH:mm:ssZ') },
-  });
   useEffect(() => {
     client.subscribe(`/driver_locations`, function (message) {
       const {
@@ -124,11 +124,18 @@ function MonitorMap({origin, destination}) {
       fetchData();
       setDriverState(dState);
     }
-
   }, [data]);
-  
-  return <MapContainer><MMap coords={locationDrivers} drivers={driverState} origin={origin} destination={destination} /></MapContainer>;
-  
+
+  return (
+    <MapContainer>
+      <MMap
+        coords={locationDrivers}
+        drivers={driverState}
+        origin={origin}
+        destination={destination}
+      />
+    </MapContainer>
+  );
 }
 function ReservationCard({ items, liff }) {
   const {
@@ -142,14 +149,19 @@ function ReservationCard({ items, liff }) {
     traces,
     place_to,
     place_from,
-    driver
+    driver,
   } = items[0];
-  const gaEventTracker = useAnalyticsEventTracker("ActiveReservation");
+  const gaEventTracker = useAnalyticsEventTracker('ActiveReservation');
   const [mapVisible, toggleMap] = React.useState(false);
   const [driverLocation, setDriver] = React.useState({});
+  const { data } = useSubscription(ACTIVE_WORKING_SHIFT, {
+    shouldResubscribe: true,
+    variables: { day: dayjs().startOf('day').format('YYYY-MM-DDTHH:mm:ssZ') },
+  });
+  const { data: activeTrips } = useSubscription(ACTIVE_TRIPS);
 
   useEffect(() => {
-    if(driver){
+    if (driver) {
       client.subscribe(`/driver_locations/${driver.username}`, function (message) {
         const {
           coords: { latitude, longitude },
@@ -161,7 +173,7 @@ function ReservationCard({ items, liff }) {
           timestamp,
         });
       });
-  }
+    }
   }, [driver]);
 
   if (items.length === 0) {
@@ -225,11 +237,26 @@ function ReservationCard({ items, liff }) {
           {items[0].cancelled_at}
         </ul>
 
+        <ul>
+          {data &&
+            data.items.map((item) => (
+              <li>
+                <Pin color={item?.vehicle?.color} /> {item?.driver?.username}{' '}
+                {activeTrips
+                  ? activeTrips?.trip.filter((v) => v.driver?.username === item?.driver?.username)
+                      .length > 0
+                    ? '(Busy)'
+                    : '(Vacant)'
+                  : '(...)'}
+              </li>
+            ))}
+        </ul>
+
         <div className="has-text-right">
           <button
             className="button is-small is-light"
             onClick={() => {
-              gaEventTracker('Toggle_Map',`${!mapVisible}`);
+              gaEventTracker('Toggle_Map', `${!mapVisible}`);
               toggleMap(!mapVisible);
             }}
           >
@@ -237,7 +264,7 @@ function ReservationCard({ items, liff }) {
           </button>
         </div>
 
-        {mapVisible && step>1 ? (
+        {mapVisible && step > 1 ? (
           <>
             <MapContainer>
               <Map
@@ -248,15 +275,16 @@ function ReservationCard({ items, liff }) {
               />
             </MapContainer>
           </>
-        ) : (<MonitorMap origin={place_from}
-          destination={place_to}/>)}
+        ) : (
+          <MonitorMap origin={place_from} destination={place_to} data={data} />
+        )}
         <div className="JobID">{id}</div>
         <div className="From">{from}</div>
         <div className="To">{to}</div>
         <div className="When">{displayDatetime(reserved_at)}</div>
-        <div className="Status">{`${status} ${driver ?
-                                driver?.username ? `by ${driver?.username}` : '' : ''
-                              }`}</div>
+        <div className="Status">{`${status} ${
+          driver ? (driver?.username ? `by ${driver?.username}` : '') : ''
+        }`}</div>
       </div>
 
       {step < 2 && (
@@ -305,6 +333,21 @@ const ACTIVE_WORKING_SHIFT = gql`
         license_plate
         color
       }
+      driver {
+        username
+      }
+    }
+  }
+`;
+
+const ACTIVE_TRIPS = gql`
+  subscription ACTIVE_TRIPS {
+    trip(
+      where: {
+        _and: [{ dropped_off_at: { _is_null: true } }, { cancelled_at: { _is_null: true } }]
+      }
+      order_by: { reserved_at: desc }
+    ) {
       driver {
         username
       }
@@ -417,4 +460,3 @@ const MapContainer = styled.div`
   width: 100%;
   height: 200px;
 `;
-
