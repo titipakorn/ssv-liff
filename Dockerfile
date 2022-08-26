@@ -1,15 +1,14 @@
-FROM node:16-slim AS build
+FROM node:alpine as build
 
 WORKDIR /app
-# COPY . /app
-COPY package.json .
-# # add the node_modules folder to $PATH
-# ENV PATH /app/node_modules/.bin:$PATH
+COPY . /app
+# add the node_modules folder to $PATH
+ENV PATH /app/node_modules/.bin:$PATH
 # install and cache dependencies
 RUN npm i
 #build the project for production
 # set up production environment
-FROM node:16-slim as builder
+FROM node:alpine as builder
 WORKDIR /app
 COPY . .
 COPY --from=build /app/node_modules ./node_modules
