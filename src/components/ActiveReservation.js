@@ -60,24 +60,33 @@ export default function ActiveReservation({ userID, liff }) {
       {error && <div>error... {error.message}</div>}
       {data && (data.trip ?? []).length > 0 ? (
         <div>
-          <ReservationCard items={data.trip} liff={liff} shiftData={shiftData} activeTrips={activeTrips} />
+          <ReservationCard
+            items={data.trip}
+            liff={liff}
+            shiftData={shiftData}
+            activeTrips={activeTrips}
+          />
         </div>
       ) : (
         <div>
-           <ul>
-          {shiftData &&
-            shiftData.items.map((item) => (
-              <li style={{display: 'inline-block'}}>
-                <Pin color={item?.vehicle?.color} normal={false} /> <span style={{border: '1px solid black',padding: '1px'}}>{item?.driver?.username}{' '}
-                {activeTrips
-                  ? activeTrips?.trip.filter((v) => v.driver?.username === item?.driver?.username)
-                      .length > 0
-                    ? '(Busy)'
-                    : '(Vacant)'
-                  : '(...)'}</span>
-              </li>
-            ))}
-        </ul>
+          <ul>
+            {shiftData &&
+              shiftData.items.map((item) => (
+                <li style={{ display: 'inline-block' }}>
+                  <Pin color={item?.vehicle?.color} normal={false} />{' '}
+                  <span style={{ border: '1px solid black', padding: '1px' }}>
+                    {item?.driver?.username}{' '}
+                    {activeTrips
+                      ? activeTrips?.trip.filter(
+                          (v) => v.driver?.username === item?.driver?.username
+                        ).length > 0
+                        ? '(Busy)'
+                        : '(Vacant)'
+                      : '(...)'}
+                  </span>
+                </li>
+              ))}
+          </ul>
           <MonitorMap data={shiftData} />
         </div>
       )}
@@ -156,7 +165,7 @@ function MonitorMap({ origin, destination, data }) {
     </MapContainer>
   );
 }
-function ReservationCard({ items, liff,activeTrips,shiftData }) {
+function ReservationCard({ items, liff, activeTrips, shiftData }) {
   const {
     id,
     from,
@@ -254,14 +263,17 @@ function ReservationCard({ items, liff,activeTrips,shiftData }) {
         <ul>
           {shiftData &&
             shiftData.items.map((item) => (
-              <li style={{display: 'inline-block'}}>
-                <Pin color={item?.vehicle?.color} normal={false} /> <span style={{border: '1px solid black',padding: '1px'}}>{item?.driver?.username}{' '}
-                {activeTrips
-                  ? activeTrips?.trip.filter((v) => v.driver?.username === item?.driver?.username)
-                      .length > 0
-                    ? '(Busy)'
-                    : '(Vacant)'
-                  : '(...)'}</span>
+              <li style={{ display: 'inline-block' }}>
+                <Pin color={item?.vehicle?.color} normal={false} />{' '}
+                <span style={{ border: '1px solid black', padding: '1px' }}>
+                  {item?.driver?.username}{' '}
+                  {activeTrips
+                    ? activeTrips?.trip.filter((v) => v.driver?.username === item?.driver?.username)
+                        .length > 0
+                      ? '(Busy)'
+                      : '(Vacant)'
+                    : '(...)'}
+                </span>
               </li>
             ))}
         </ul>
@@ -337,6 +349,7 @@ function ReservationCard({ items, liff,activeTrips,shiftData }) {
 const ACTIVE_WORKING_SHIFT = gql`
   subscription ACTIVE_WORKING_SHIFT($day: timestamptz) {
     items: working_shift(
+      distinct_on: [user_id]
       where: { _and: [{ _or: [{ start: { _gte: $day } }] }, { end: { _is_null: true } }] }
     ) {
       id
@@ -357,10 +370,15 @@ const ACTIVE_WORKING_SHIFT = gql`
 const ACTIVE_TRIPS = gql`
   subscription ACTIVE_TRIPS {
     trip(
+      distinct_on: [driver_id]
       where: {
-        _and: [{ dropped_off_at: { _is_null: true } }, { cancelled_at: { _is_null: true } }]
+        _and: [
+          { driver_id: { _is_null: false } }
+          { dropped_off_at: { _is_null: true } }
+          { cancelled_at: { _is_null: true } }
+        ]
       }
-      order_by: { reserved_at: desc }
+      order_by: { driver_id: asc, reserved_at: desc }
     ) {
       driver {
         username
